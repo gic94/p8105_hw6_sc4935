@@ -10,15 +10,77 @@ library(tidyverse)
 library(broom)
 library(modelr)
 library(mgcv)
+library(dbplyr)
 ```
 
 
 # Problem 1
+
+Load and clean the data for regression analysis
 ```{r}
-childbtw_tidy = read_csv("./data/birthweight.csv") %>% 
+# convert numeric to factor where appropriate
+childbwt_tidy = read_csv("./data/birthweight.csv") %>% 
   janitor::clean_names() %>%
   mutate(
-    babysex = as.factor(babysex)
+    babysex = as.factor(babysex),
+    frace = as.factor(frace),
+    malform = as.factor(malform),
+    mrace = as.factor(mrace)
   )
+
+childbwt_tidy
+
+# check for missing data
+check_na = childbwt_tidy %>% 
+  map(~ sum(is.na(.)))
+
+check_na
+```
+
+
+Propose a regression model for birthweight. 
+```{r}
+bwt_model = lm(bwt ~ fincome + frace + malform + momage + mrace + ppbmi + smoken, data = childbwt_tidy)
+
+summary(bwt_model)
+coef(bwt_model)
+
+bwt_model %>% 
+   broom::tidy() %>% 
+   knitr::kable(digits = 3)
+```
+
+Describe your modeling process
+
+
+
+
+
+
+Show a plot of model residuals against fitted values
+```{r}
+childbwt_tidy %>% 
+  modelr::add_predictions(bwt_model) %>% 
+  modelr::add_residuals(bwt_model) %>% 
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point(alpha = .5) + 
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(
+    x = "Predicted values",
+    y = "Residuals",
+    title = "Residuals against predicted values"
+  )
+```
+
+
+Compare your model to two others
+```{r}
+# One using length at birth and gestational age as predictors(main effects only)
+model1 = lm(bwt ~ blength + gaweeks, data = childbwt_tidy) %>% 
+  broom::tidy() 
+  
+# One using head circumference, length, sex, and all interactions(including the three-way interaction) between these
+model2 = lm(bwt ~ babysex * blength * bhead, data = childbwt_tidy) %>% 
+  broom::tidy() 
 ```
 
