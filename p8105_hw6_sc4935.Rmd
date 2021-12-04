@@ -32,9 +32,12 @@ childbwt_tidy
 
 # check for missing data
 check_na = childbwt_tidy %>% 
-  map(~ sum(is.na(.)))
+  map(~sum(is.na(.)))
 
 check_na
+
+# Count missing data
+sum(is.na(childbwt_tidy))
 ```
 
 
@@ -50,14 +53,34 @@ bwt_model %>%
    knitr::kable(digits = 3)
 ```
 
-Describe your modeling process
+## Describe your modeling process
 
+### The predictors I choose:
+fincome: family monthly income 
 
+frace: father’s race 
 
+malform: presence of malformations that could affect weight 
 
+momage: mother’s age at delivery 
+
+mrace: mother’s race 
+
+ppbmi: mother’s pre-pregnancy BMI
+
+smoken: average number of cigarettes smoked per day during pregnancy
+
+Firstly, the exposures of family income, the race of parents will help me to find out the social status of family of new born baby. Second, I choose the predictors of mother’s age at delivery, mother’s pre-pregnancy BMI, and whether smoken to find out the health state of mother. Finally, the presence of malformations that could affect weight can see if the exposure directly affect babyweight.
+
+In brief, according to many research, the social status of family, mother's health state, and the presence of malformations might affect the babyweight directly or indirectly.
 
 
 Show a plot of model residuals against fitted values
+```{r}
+modelr::add_predictions(childbwt_tidy, bwt_model)
+modelr::add_residuals(childbwt_tidy, bwt_model)
+```
+
 ```{r}
 childbwt_tidy %>% 
   modelr::add_predictions(bwt_model) %>% 
@@ -72,6 +95,7 @@ childbwt_tidy %>%
   )
 ```
 
+So, we can see the residuals against predicted values is symmetric about y=0. And the Residual Plot has a mostly CONSTANT pattern across the X axis.
 
 Compare your model to two others
 ```{r}
@@ -125,10 +149,16 @@ cv_df %>%
     values_to = "rmse",
     names_prefix = "rmse_") %>% 
   mutate(model = fct_inorder(model)) %>% 
-  ggplot(aes(x = model, y = rmse)) + geom_violin()
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin() +
+  labs(
+    x = "Model",
+    y = "RMSE",
+    title = "Compare 3 models with rmse"
+  )
 ```
 
-
+So, from the violin plot, model 2(three-way interaction: head circumference, length, sex) seems have the loweset rmse, and the model I interested has the highest rmse.
 
 
 
@@ -148,7 +178,7 @@ weather_df =
   select(name, id, everything())
 ```
 
-Use 5000 bootstrap samples
+Use 5000 bootstrap samples, for each bootstrap sample, produce estimates of these two quantities
 ```{r}
 boot_straps = 
   weather_df %>% 
@@ -201,7 +231,7 @@ boot_straps_log %>%
   )
 ```
 
-R Square function
+R Squared function
 ```{r}
 boot_straps_r = 
   weather_df %>% 
@@ -234,3 +264,4 @@ boot_straps_r %>%
   )
 ```
 
+So, both plots of distribution(Log and R squared) are seems normal.
