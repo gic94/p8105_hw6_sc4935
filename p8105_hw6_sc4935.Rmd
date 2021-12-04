@@ -128,3 +128,109 @@ cv_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
+
+
+
+
+# Problem 2
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+Use 5000 bootstrap samples
+```{r}
+boot_straps = 
+  weather_df %>% 
+  janitor::clean_names() %>%
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::tidy)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results)
+```
+
+```{r}
+ boot_straps %>% 
+  group_by(term) %>% 
+  summarize(boot_se = sd(estimate)) %>% 
+  knitr::kable(digits = 3)
+```
+
+Log function
+```{r}
+boot_straps_log = 
+  boot_straps %>% 
+  select(.id, term, estimate) %>% 
+  pivot_wider(
+    names_from = "term",
+    values_from = "estimate"
+    ) %>% 
+  rename(intercept = "(Intercept)") %>% 
+  mutate(log_beta = log(intercept*tmin))
+
+boot_straps_log
+
+  
+boot_straps_log %>%   
+  summarise(
+    lower_quantile = quantile(log_beta, c(.025)), 
+    upper_quantile = quantile(log_beta, c(.975))
+    ) %>% 
+  knitr::kable(digits = 3) 
+  
+
+boot_straps_log %>%  
+  ggplot(aes(x = log_beta)) + 
+  geom_density() +
+  labs(
+    x = "Log estimate",
+    y = "Density",
+    title = "Distribution of Log estimates"
+  )
+```
+
+R Square function
+```{r}
+boot_straps_r = 
+  weather_df %>% 
+  janitor::clean_names() %>%
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::glance)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results)
+
+boot_straps_r
+  
+boot_straps_r %>% 
+    summarise(
+    lower_quantile = quantile(r.squared, c(.025)), 
+    upper_quantile = quantile(r.squared, c(.975))
+    ) %>% 
+  knitr::kable(digits = 3) 
+  
+
+
+boot_straps_r %>% 
+  ggplot(aes(x = r.squared)) + 
+  geom_density() +
+  labs(
+    x = "R.squared estimate",
+    y = "Density",
+    title = "Distribution of R.squared estimates"
+  )
+```
+
