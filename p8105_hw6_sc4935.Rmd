@@ -95,7 +95,7 @@ childbwt_tidy %>%
   )
 ```
 
-So, we can see the residuals against predicted values is symmetric about y=0. And the Residual Plot has a mostly CONSTANT pattern across the X axis.
+So, we can see the residuals against predicted values is symmetric about X-axis(y = 0). And the residual plot has a mostly CONSTANT pattern across the X-axis.
 
 Compare your model to two others
 ```{r}
